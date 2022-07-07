@@ -86,7 +86,7 @@ Now, create an IAM role and the Lambda function via the AWS CLI.
 First create the following trust policy JSON file
 
 ```
-$ cat trust-policy.json
+$ cat > trust-policy.json
 {
  "Version": "2012-10-17",
   "Statement": [

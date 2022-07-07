@@ -9,7 +9,7 @@ That being said, the instructions below should work on any Linux distribution.
 Start by building the SDK from source.
 ```bash
 $ mkdir ~/install
-$ git clone https://github.com/aws/aws-sdk-cpp.git
+$ git clone --recurse-submodules https://github.com/selimnairb/aws-sdk-cpp.git
 $ cd aws-sdk-cpp
 $ mkdir build
 $ cd build
@@ -34,18 +34,43 @@ $ mkdir build
 $ cd build
 $ cmake .. -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=OFF \
-  -DCMAKE_INSTALL_PREFIX=~/install \
+  -DCMAKE_INSTALL_PREFIX=~/install
 $ make
 $ make install
+```
+
+## Create Lambda runtime Docker image in which to build our image
+Create image:
+```bash
+docker build -t lambda-env .
+```
+
+Create container:
+```bash
+docker create --name lambda-build \
+  --mount type=bind,source="$(pwd)",target=/build \
+  lambda-env
+```
+
+Start container:
+```bash
+docker start -i lambda-build
 ```
 
 ## Build the application
 The last step is to build the Lambda function in `main.cpp` and run the packaging command as follows:
 
 ```bash
+$ mkdir build
+$ cd build
 $ cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
 $ make
 $ make aws-lambda-package-encoder
 ```
 
 You should now have a zip file called `encoder.zip`. Follow the instructions in the main README to upload it and invoke the lambda.
+
+Run with:
+```bash
+aws lambda invoke --function-name demo --cli-binary-format raw-in-base64-out --payload '{"s3bucket":"mybucket","s3key": "helloworld.txt"}' output.json
+```
