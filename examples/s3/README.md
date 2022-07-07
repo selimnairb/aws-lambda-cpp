@@ -5,6 +5,10 @@ To also show case how this can be done on a Linux distro other than Amazon Linux
 
 That being said, the instructions below should work on any Linux distribution.
 
+> Not true! Under Ubuntu 22.04, the version of OpenSSL (3.0.x) is not compatible with
+> AWS SDK. So make sure to use the lambda runtime container to do the build in, as
+> documented below.
+
 ## Create Lambda runtime Docker image in which to build our lambda
 Create image:
 ```bash
@@ -64,6 +68,40 @@ $ make aws-lambda-package-encoder
 
 You should now have a zip file called `encoder.zip`.
 
+## Create IAM roles for lambda
+Now, create an IAM role and the Lambda function via the AWS CLI.
+
+First create the following trust policy JSON file
+
+```
+$ cat > trust-policy.json
+{
+ "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": ["lambda.amazonaws.com"]
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+
+```
+Then create the IAM role:
+
+```bash
+$ aws iam create-role --role-name lambda-demo --assume-role-policy-document file://trust-policy.json
+```
+
+Note down the role Arn returned to you after running that command. We'll need it in the next steps:
+
+Attach the following policy to allow Lambda to write logs in CloudWatch:
+```bash
+$ aws iam attach-role-policy --role-name lambda-demo --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+```
+
 ## Upload lambda
 Create new:
 ```bash
@@ -79,6 +117,7 @@ aws lambda update-function-code --function-name demo \
 --zip-file fileb://encoder.zip
 ```
 
+## Configure Lambda to have access to 
 
 Run with:
 ```bash
