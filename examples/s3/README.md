@@ -5,19 +5,30 @@ To also show case how this can be done on a Linux distro other than Amazon Linux
 
 That being said, the instructions below should work on any Linux distribution.
 
+## Create Lambda runtime Docker image in which to build our lambda
+Create image:
+```bash
+docker build -t lambda-env .
+```
+
+Run container with current directory on host bound to /build on container:
+```bash
+docker run --mount type=bind,source="$(pwd)",target=/build -it lambda-env 
+```
+
+
 ## Build the AWS C++ SDK
 Start by building the SDK from source.
 ```bash
-$ mkdir ~/install
-$ git clone --recurse-submodules https://github.com/selimnairb/aws-sdk-cpp.git
+$ git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git
 $ cd aws-sdk-cpp
 $ mkdir build
 $ cd build
-$ cmake .. -DBUILD_ONLY="s3" \
+$ cmake3 .. -DBUILD_ONLY="s3" \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=OFF \
   -DCUSTOM_MEMORY_MANAGEMENT=OFF \
-  -DCMAKE_INSTALL_PREFIX=~/install \
+  -DCMAKE_INSTALL_PREFIX=/usr \
   -DENABLE_UNITY_BUILD=ON
 
 $ make
@@ -32,45 +43,48 @@ $ git clone https://github.com/awslabs/aws-lambda-cpp-runtime.git
 $ cd aws-lambda-cpp-runtime
 $ mkdir build
 $ cd build
-$ cmake .. -DCMAKE_BUILD_TYPE=Release \
+$ cmake3 .. -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=OFF \
-  -DCMAKE_INSTALL_PREFIX=~/install
+  -DCMAKE_INSTALL_PREFIX=/usr
 $ make
 $ make install
-```
-
-## Create Lambda runtime Docker image in which to build our image
-Create image:
-```bash
-docker build -t lambda-env .
-```
-
-Create container:
-```bash
-docker create --name lambda-build \
-  --mount type=bind,source="$(pwd)",target=/build \
-  lambda-env
-```
-
-Start container:
-```bash
-docker start -i lambda-build
 ```
 
 ## Build the application
 The last step is to build the Lambda function in `main.cpp` and run the packaging command as follows:
 
 ```bash
+$ mkdir /tmp/install
 $ mkdir build
 $ cd build
-$ cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
+$ cmake3 .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr
 $ make
 $ make aws-lambda-package-encoder
 ```
 
-You should now have a zip file called `encoder.zip`. Follow the instructions in the main README to upload it and invoke the lambda.
+You should now have a zip file called `encoder.zip`.
+
+## Upload lambda
+Create new:
+```bash
+aws lambda create-function --function-name demo \
+--role arn:aws:iam::?????:role/lambda-demo \
+--runtime provided --timeout 15 --memory-size 128 \
+--handler demo --zip-file fileb://encoder.zip
+```
+
+Upload a new version:
+```bash
+aws lambda update-function-code --function-name demo \
+--zip-file fileb://encoder.zip
+```
+
 
 Run with:
 ```bash
-aws lambda invoke --function-name demo --cli-binary-format raw-in-base64-out --payload '{"s3bucket":"mybucket","s3key": "helloworld.txt"}' output.json
+aws lambda invoke \
+--cli-binary-format raw-in-base64-out \
+--function-name demo \
+--payload '{"s3bucket":"ccom-test-lambda-in","s3key": "helloworld.txt"}' \
+output.txt
 ```

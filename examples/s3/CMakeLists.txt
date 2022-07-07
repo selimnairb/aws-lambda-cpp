@@ -18,5 +18,5 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 
 target_compile_features(${PROJECT_NAME} PRIVATE "cxx_std_11")
 
-aws_lambda_package_target(${PROJECT_NAME})
+aws_lambda_package_target(${PROJECT_NAME} NO_LIBC)
 
