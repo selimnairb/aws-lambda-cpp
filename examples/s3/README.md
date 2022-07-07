@@ -117,13 +117,46 @@ aws lambda update-function-code --function-name demo \
 --zip-file fileb://encoder.zip
 ```
 
-## Configure Lambda to have access to 
+## Configure Lambda to have access to S3
+[Original instructions](https://aws.amazon.com/premiumsupport/knowledge-center/lambda-execution-role-s3-bucket/)
 
-Run with:
+1. Navigate to the IAM execution role for the lambda in question.
+2. In the Permissions tab, choose Add permissions > Create inline policy.
+3. Choose the JSON tab.
+4. Enter a resource-based IAM policy that grants access to your S3 bucket. For more information, see Using resource-based policies for AWS Lambda.
+
+> IAM policy example that grants access to a specific S3 bucket
+>Important: Replace "arn:aws:s3:::AWSDOC-EXAMPLE-BUCKET/*" with your S3 bucket's Amazon Resource Name (ARN).
+```json
+{
+"Version": "2012-10-17",
+"Statement": [
+{
+"Sid": "ExampleStmt",
+"Action": [
+"s3:GetObject"
+],
+"Effect": "Allow",
+"Resource": [
+"arn:aws:s3:::AWSDOC-EXAMPLE-BUCKET/*"
+]
+}
+]
+}
+```
+
+5. Choose Review policy.
+6. For Name, enter a name for your policy, e.g., 'lambda-demo-s3'
+7. Choose Create policy.
+
+
+## Run lambda:
 ```bash
 aws lambda invoke \
 --cli-binary-format raw-in-base64-out \
 --function-name demo \
---payload '{"s3bucket":"ccom-test-lambda-in","s3key": "helloworld.txt"}' \
+--payload '{"s3bucket":"AWSDOC-EXAMPLE-BUCKET","s3key": "helloworld.txt"}' \
 output.txt
 ```
+
+> Note: This is for version 2 of AWSCLI. Version 1 likely does not require the `--cli-binary-format` option.
